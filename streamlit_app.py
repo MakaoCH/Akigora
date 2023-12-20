@@ -9,14 +9,19 @@ st.image("logo_rvb_horizontal_petit.png")
 st.title("Dashboard")
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-CE = pd.read_excel('CollectionExperts.xlsx')
-CI = pd.read_excel('CollectionInterventions.xlsx')
-CU = pd.read_excel('CollectionUser.xlsx')
-CN = pd.read_excel('CollectionNewsletter.xlsx')
+CE = pd.read_excel('CollectionExperts.xlsx', engine='openpyxl')
+CI = pd.read_excel('CollectionInterventions.xlsx', engine='openpyxl')
+CU = pd.read_excel('CollectionUser.xlsx', engine='openpyxl')
+CN = pd.read_excel('CollectionNewsletter.xlsx', engine='openpyxl')
+CR = pd.read_excel('CollectionRecommandation.xlsx', engine='openpyxl')
+CC = pd.read_excel('CollectionCompany.xlsx', engine='openpyxl')
 CN['createdAt'] = pd.to_datetime(CN['createdAt']).dt.date
 
 CE['createdAt'] = CE['createdAt'].str.replace("010","10")
 CE['createdAt'] = pd.to_datetime(CE['createdAt'], dayfirst=True)
+
+CC['createdAt'] = CC['createdAt'].str.replace("010","10")
+CC['createdAt'] = pd.to_datetime(CC['createdAt'], dayfirst=True)
 
 def extract_coordinates(geo_data):
     try:
@@ -127,11 +132,30 @@ CE["location"] = CE["location"].replace(["Aquitaine"], "Bordeaux")
 
 CE = remplacer(CE, 'studyLevel', ["Bac +5"], ['Bac5'])
 CE = remplacer(CE, 'studyLevel', ["Bac + 8"], ['Bac8'])
-CE = remplacer(CE, 'studyLevel', ["Bac + 3"], ['Bac3'])  
+CE = remplacer(CE, 'studyLevel', ["Bac + 3"], ['Bac3']) 
 
-merged_df = pd.merge(CE, CI, left_on='userId', right_on='expert_userId', how='inner')
+CE["location"] = CE["location"].str.split(',').str[0]
+CE["location"] = CE["location"].replace(["Bordeaux et périphérie"], "Bordeaux")
+CE["location"] = CE["location"].replace(["Paris et périphérie"], "Paris")
+CE["location"] = CE["location"].replace(["Île-de-France"], "Paris")
+CE["location"] = CE["location"].replace(["Lyon et périphérie"], "Lyon")
+CE["location"] = CE["location"].replace(["Lille et périphérie"], "Lille")
+CE["location"] = CE["location"].replace(["Toulouse et périphérie"], "Toulouse")
+CE["location"] = CE["location"].replace(["Montpellier et périphérie"], "Montpellier")
+CE["location"] = CE["location"].replace(["Nantes et périphérie"], "Nantes")
+CE["location"] = CE["location"].replace(["Nouvelle-Aquitaine"], "Bordeaux")
+CE["location"] = CE["location"].replace(["Bordeaux Métropole"], "Bordeaux")
+CE["location"] = CE["location"].replace(["Bordeaux "], "Bordeaux")
+CE["location"] = CE["location"].replace("France", pd.NA)
+CE["location"] = CE["location"].replace(["BORDEAUX"], "Bordeaux")
+CE["location"] = CE["location"].replace(["Gironde"], "Bordeaux")
+CE["location"] = CE["location"].replace(["Aquitaine"], "Bordeaux")
+
+
+merged_df = pd.merge(CE, CI, left_on='userId', right_on='expert_userId', how='left')
 merged_df2 = pd.merge(CU, CI, left_on='_id', right_on='expert_userId', how='inner')
-final_merged_df = pd.merge(merged_df, merged_df2, left_on='expert_userId', right_on='expert_userId', how='inner')
+merged_df3 = pd.merge(CE, CR, left_on='_id', right_on='expertId', how='inner')
+#final_merged_df = pd.merge(merged_df, merged_df2, left_on='expert_userId', right_on='expert_userId', how='inner')
 
 
 if st.sidebar.checkbox("Afficher les données 'Collection Interventions'", False):
@@ -143,6 +167,15 @@ if st.sidebar.checkbox("Afficher les données 'Collection Profile'", False):
 if st.sidebar.checkbox("Afficher les données 'Collection User'", False):
     st.subheader("Jeu de données")
     st.write(CU)
+if st.sidebar.checkbox("Afficher les données 'Collection Newsletter'", False):
+    st.subheader("Jeu de données")
+    st.write(CN)
+if st.sidebar.checkbox("Afficher les données 'Collection Recommandation'", False):
+    st.subheader("Jeu de données")
+    st.write(CR)
+if st.sidebar.checkbox("Afficher les données 'Collection Company'", False):
+    st.subheader("Jeu de données")
+    st.write(CC)
 
 
 tab1, tab2, tab3 = st.tabs(["Département RH", "Département commerce", "Département marketing"])
@@ -152,10 +185,11 @@ toutes_les_années = [2018, 2019, 2020, 2021, 2022, 2023]
 with tab1:
     st.title("Experts incrits sur la plateforme")
 
-    choix_drh = st.multiselect("Sélection indicateur(s)", ["Total","Carte", "Par période", "Par domaine", "Par ville" , "Avec ou sans entretien","Avec ou sans références"], default=["Total", "Carte", "Par période", "Par domaine", "Par ville", "Avec ou sans entretien", "Avec ou sans références"])
+    choix_drh = st.multiselect("Sélection indicateur(s)", ["Total","Carte", "Par période", "Par domaine", "Par ville" , "Avec ou sans entretien","Avec ou sans références","Note","Recommandation", "How we met"], default=["Total", "Carte", "Par période", "Par domaine", "Par ville", "Avec ou sans entretien", "Avec ou sans références","Note","Recommandation","How we met"])
 
     année = st.multiselect("Choisir l'année", toutes_les_années, default=toutes_les_années)
-    filtered_data = CE[CE['createdAt'].dt.year.isin(année)]   
+    filtered_data = CE[CE['createdAt'].dt.year.isin(année)] 
+ 
 
     nbre_tot_exp = filtered_data['type'].count()
     if "Total" in choix_drh:
@@ -196,22 +230,6 @@ with tab1:
     
     if "Par ville" in choix_drh:
         st.subheader("% d'experts par ville")
-        filtered_data["location"] = filtered_data["location"].str.split(',').str[0]
-        filtered_data["location"] = filtered_data["location"].replace(["Bordeaux et périphérie"], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace(["Paris et périphérie"], "Paris")
-        filtered_data["location"] = filtered_data["location"].replace(["Île-de-France"], "Paris")
-        filtered_data["location"] = filtered_data["location"].replace(["Lyon et périphérie"], "Lyon")
-        filtered_data["location"] = filtered_data["location"].replace(["Lille et périphérie"], "Lille")
-        filtered_data["location"] = filtered_data["location"].replace(["Toulouse et périphérie"], "Toulouse")
-        filtered_data["location"] = filtered_data["location"].replace(["Montpellier et périphérie"], "Montpellier")
-        filtered_data["location"] = filtered_data["location"].replace(["Nantes et périphérie"], "Nantes")
-        filtered_data["location"] = filtered_data["location"].replace(["Nouvelle-Aquitaine"], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace(["Bordeaux Métropole"], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace(["Bordeaux "], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace("France", pd.NA)
-        filtered_data["location"] = filtered_data["location"].replace(["BORDEAUX"], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace(["Gironde"], "Bordeaux")
-        filtered_data["location"] = filtered_data["location"].replace(["Aquitaine"], "Bordeaux")
         nbre_ville = st.number_input("Choisir le nombre de ville à afficher (Par défaut 10)", 1, 15, value=10, step=1) 
         experts_par_ville = filtered_data["location"].value_counts().nlargest(nbre_ville)
         labels = experts_par_ville
@@ -250,6 +268,40 @@ with tab1:
         liste_ss_ref = filtered_data[CE['name'].isnull()]
         st.subheader("Liste des experts sans 'Références'")
         st.write(liste_ss_ref)
+
+    if "Note" in choix_drh:
+        st.subheader("Note d'évaluation par expert")
+        merged_df['name'] = merged_df['name'].fillna(merged_df['userId'])
+        note = merged_df.pivot_table(index=['name' or 'userId'], values=['note_communication','note_quality','note_level'])
+        st.write(note)
+    
+    if "Recommandation" in choix_drh:
+        st.subheader("Pourcentage d'experts recommandés")
+        merged_df3['name'] = merged_df3['name'].fillna(merged_df3['userId'])
+        #drop_name = merged_df3.dropna(subset=['name'])
+        reco = merged_df3['name'].drop_duplicates().reset_index()
+        nbre_reco = len(merged_df3['expertId'].unique())
+        pct_exp_reco = round((( nbre_reco/ nbre_tot_exp ) * 100), 2)
+        container = st.container(border=True)   
+        container.write(f"Pourcentage d'experts recommandés : {pct_exp_reco} %")
+        st.subheader("Liste des experts recommandés")
+        st.write(reco)
+
+    if "How we met" in choix_drh:
+        st.subheader("How we met")
+        CC = CC.dropna(subset=['howWeMet'])
+        howWeMet_pivot = CC.pivot_table(index=['companyOrSchool', 'howWeMet'], values='_id', aggfunc='count').reset_index()
+        howWeMet_pivot['pct.howWeMet.pivot'] = round((howWeMet_pivot['_id'] / howWeMet_pivot['_id'].sum()) * 100, 2)
+        howWeMet_pivot = howWeMet_pivot.sort_values(by='pct.howWeMet.pivot', ascending=False)
+
+        colors = {'company': '#bb8df7', 'school': '#7d43c8'}
+
+        plt.figure(figsize=(8, 8))
+        ax = sns.barplot(y='howWeMet', x='pct.howWeMet.pivot', hue='companyOrSchool' ,data=howWeMet_pivot, palette=colors,  orient='h' )
+        plt.xlabel("Pourcentage")
+        plt.ylabel("")
+        st.pyplot()
+        st.write()
 
 with tab2:
     choix_dc = st.multiselect("Sélection indicateur(s)", ["Missions","Taux", "Clients"], default=["Missions","Taux", "Clients"])
@@ -325,6 +377,7 @@ with tab2:
         plt.pie(companyOrSchool, labels=companyOrSchool, colors=colors)
         plt.legend(companyOrSchool.index)
         st.pyplot()
+        
 
 with tab3:
     choix_dm = st.multiselect("Sélection indicateur(s)", ["Statut juridique","Nombre d'années d'expérience (1er catégorie)","Nombre d'années d'expérience (2ème catégorie)", "Diplôme", "Newsletter"],
