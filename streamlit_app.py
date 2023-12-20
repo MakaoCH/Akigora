@@ -152,7 +152,7 @@ CE["location"] = CE["location"].replace(["Gironde"], "Bordeaux")
 CE["location"] = CE["location"].replace(["Aquitaine"], "Bordeaux")
 
 
-merged_df = pd.merge(CE, CI, left_on='userId', right_on='expert_userId', how='left')
+merged_df = pd.merge(CE, CI, left_on='userId', right_on='expert_userId', how='inner')
 merged_df2 = pd.merge(CU, CI, left_on='_id', right_on='expert_userId', how='inner')
 merged_df3 = pd.merge(CE, CR, left_on='_id', right_on='expertId', how='inner')
 #final_merged_df = pd.merge(merged_df, merged_df2, left_on='expert_userId', right_on='expert_userId', how='inner')
