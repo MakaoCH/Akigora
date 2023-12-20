@@ -183,7 +183,7 @@ tab1, tab2, tab3 = st.tabs(["Département RH", "Département commerce", "Départ
 toutes_les_années = [2018, 2019, 2020, 2021, 2022, 2023]
 
 with tab1:
-    st.title("Experts incrits sur la plateforme")
+    st.title("Experts inscrits sur la plateforme")
 
     choix_drh = st.multiselect("Sélection indicateur(s)", ["Total","Carte", "Par période", "Par domaine", "Par ville" , "Avec ou sans entretien","Avec ou sans références","Note","Recommandation", "How we met"], default=["Total", "Carte", "Par période", "Par domaine", "Par ville", "Avec ou sans entretien", "Avec ou sans références","Note","Recommandation","How we met"])
 
@@ -308,7 +308,7 @@ with tab2:
     #Sélectionner tous les experts par défaut
     unique_experts = merged_df['name'].unique()
     unique_experts = ['Tous les experts'] + [str(expert) for expert in unique_experts if expert is not None]
-    selected_expert = st.selectbox("Sélectionnez un expert (avec références)", unique_experts)
+    selected_expert = st.selectbox("Sélectionnez un expert", unique_experts)
 
     # Filtrer par expert
     if selected_expert != 'Tous les experts':
